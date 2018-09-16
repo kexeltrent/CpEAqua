@@ -1,6 +1,10 @@
 
 #include <TimeLib.h>
+#include <Servo.h>
+Servo myservo;  // create servo object to control a servo
+// twelve servo objects can be created on most boards
 
+int pos = 0;    // variable to store the servo position
 
 #include <DHT.h>
  
@@ -32,6 +36,7 @@ int PH_ARRAY_INDEX=0;
 unsigned long int avgValue; //Store the average value of the sensor feedback
 float b;
 int buf[10],temp;
+int in1 = 8;
 
 long duration;
 float linearlength;
@@ -42,9 +47,11 @@ void wt_tmp();
 void dht_sen();
 void wt_lvl();
 void ph_sen();
+void servo_motor();
 
-
-
+int ledPin1 = 10;                // LED connected to digital pin 10 (PH UP)
+int ledPin2 = 11;                // LED connected to digital pin 11 (PH DOWN)
+int ledPin3 = 12;                // LED connected to digital pin 12 (WATER LEVEL)
 
 DHT dht(DHTPIN, DHTTYPE);
 OneWire oneWire(ONE_WIRE_BUS);
@@ -64,7 +71,7 @@ void setup(void)
 {
 //TIME START
 Serial.begin(9600);
-  setTime(1, 00, 00, 11, 12, 2019);
+  setTime(10, 17, 00, 9, 16, 2018);
 
 
 //TIME END
@@ -88,13 +95,26 @@ Serial.begin(9600);
 
 //PH START
   pinMode(LED,OUTPUT);   
-  pinMode(13,OUTPUT);
+  
   //Serial.println("Initializing PH...!");    //Test the serial monitor
 //PH END
 
 //LCD START
 lcd.begin(20, 4);
 //LCD END
+
+//RELAY START
+  pinMode(in1, OUTPUT);
+  digitalWrite(in1, HIGH);
+//RELAY END
+
+//LED
+pinMode(ledPin1, OUTPUT);      // sets the digital pin as output
+pinMode(ledPin2, OUTPUT);      // sets the digital pin as output
+pinMode(ledPin3, OUTPUT);      // sets the digital pin as output
+
+//
+myservo.attach(3);
 }
 
 void loop(void)
@@ -116,6 +136,7 @@ void loop(void)
     dht_sen();
     wt_lvl();
     ph_sen();
+    servo_motor();
 
 
 
@@ -158,6 +179,14 @@ phValue=3.5*phValue+0.2; //convert the millivolt into pH value
   //Serial.print("PH: ");
   Serial.print(phValue,2);
   Serial.println("");
+  if (phValue > 6){
+      digitalWrite(ledPin1, HIGH);
+ 
+    }else digitalWrite(ledPin1, LOW);
+  
+  if (phValue < 6){
+    digitalWrite(ledPin2, HIGH);
+  }else digitalWrite(ledPin2, LOW);
 
 
 lcd.setCursor(11,1);
@@ -176,6 +205,10 @@ void wt_tmp(){
   lcd.print("WC:");
   lcd.setCursor(3,0);
   lcd.print(Celcius);
+  if (Celcius < 30){
+  digitalWrite(in1, LOW);
+  }else
+  digitalWrite(in1, HIGH);
 
 
 
@@ -240,10 +273,14 @@ delayMicroseconds(10);
 digitalWrite(trig, LOW); // Reads the echoPin, returns the sound wave travel time in microseconds
 duration = pulseIn(echo, HIGH); // Calculating the distance
 linearlength = duration*0.034/2;
-dist= 25.4- linearlength;  //Height of Water in the reservoir in cm
+dist= 38- linearlength;  //Height of Water in the reservoir in cm
 //Serial.print("WL:");
 Serial.print(dist);
 Serial.print(",");
+  if (dist < 18){
+    digitalWrite(ledPin3, HIGH);
+  }else if (dist > 30)
+  digitalWrite(ledPin3, LOW);
 lcd.setCursor(11,0);
 lcd.print("WL:");
 lcd.setCursor(14,0);
@@ -251,8 +288,16 @@ lcd.print(dist);
 
 }
 
-void time_plot(){
-  
+void servo_motor() {
+  for (pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
+    // in steps of 1 degree
+    myservo.write(pos);              // tell servo to go to position in variable 'pos'
+    delay(50);                       // waits 15ms for the servo to reach the position
+  }
+  for (pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
+    myservo.write(pos);              // tell servo to go to position in variable 'pos'
+    delay(20);                       // waits 15ms for the servo to reach the position
+  }
 }
 
 
